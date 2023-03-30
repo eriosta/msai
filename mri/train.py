@@ -78,13 +78,13 @@ class ViTTrainer:
         self.data = np.array(data)
         self.masks = np.array(masks)
 
-        def preprocess_data(self):
-            data_resized = np.array([TF.to_tensor(TF.resize(Image.fromarray((slice*255).astype(np.uint8)), (self.img_size, self.img_size))) for slice in self.data])
-            data_rescaled = Normalize(mean=[0.5], std=[0.5])(torch.Tensor(data_resized)).numpy()
+    def preprocess_data(self):
+        data_resized = np.array([TF.to_tensor(TF.resize(Image.fromarray((slice*255).astype(np.uint8)), (self.img_size, self.img_size))) for slice in self.data])
+        data_rescaled = Normalize(mean=[0.5], std=[0.5])(torch.Tensor(data_resized)).numpy()
 
-            masks_resized = np.array([TF.to_tensor(TF.resize(Image.fromarray(slice), (self.img_size, self.img_size))) for slice in self.masks])
-            masks_rescaled = (masks_resized / np.max(masks_resized)).astype(np.uint8)
+        masks_resized = np.array([TF.to_tensor(TF.resize(Image.fromarray(slice), (self.img_size, self.img_size))) for slice in self.masks])
+        masks_rescaled = (masks_resized / np.max(masks_resized)).astype(np.uint8)
 
-            # Split data into training, validation, and testing sets
-            self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(data_rescaled, masks_rescaled, test_size=0.2, random_state=42)
-            self.X_train, self.X_val, self.y_train, self.y_val = train_test_split(self.X_train, self.y_train, test_size=0.2, random_state=42)
+        # Split data into training, validation, and testing sets
+        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(data_rescaled, masks_rescaled, test_size=0.2, random_state=42)
+        self.X_train, self.X_val, self.y_train, self.y_val = train_test_split(self.X_train, self.y_train, test_size=0.2, random_state=42)
