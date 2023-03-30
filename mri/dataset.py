@@ -38,5 +38,5 @@ class MRIImageFolder:
             processed_patients += 1
             print(f"Processed patient {patient_id} ({num_files} files). {processed_patients} of {total_patients} patients.")
         # Create ImageFolders for the MRI scans and lesion segmentation masks
-        self.mri_imagefolder = ImageFolder(os.path.join(self.output_dir, "MRI"))
-        self.mask_imagefolder = ImageFolder(os.path.join(self.output_dir, "Mask"))
+        # self.mri_imagefolder = ImageFolder(os.path.join(self.output_dir, "MRI"))
+        # self.mask_imagefolder = ImageFolder(os.path.join(self.output_dir, "Mask"))
