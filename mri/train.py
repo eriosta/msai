@@ -10,6 +10,7 @@ from torchvision.transforms import transforms
 from timm.models import vision_transformer as vit
 import torch
 from PIL import Image
+import torchvision.transforms.functional as TF
 from torchvision.transforms import Resize, Normalize
 
 
@@ -77,11 +78,11 @@ class ViTTrainer:
         self.data = np.array(data)
         self.masks = np.array(masks)
 
-    def preprocess_data(self):
-            data_resized = np.array([Resize(self.img_size)(Image.fromarray((slice*255).astype(np.uint8))) for slice in self.data])
+        def preprocess_data(self):
+            data_resized = np.array([TF.to_tensor(TF.resize(Image.fromarray((slice*255).astype(np.uint8)), (self.img_size, self.img_size))) for slice in self.data])
             data_rescaled = Normalize(mean=[0.5], std=[0.5])(torch.Tensor(data_resized)).numpy()
 
-            masks_resized = np.array([Resize(self.img_size)(Image.fromarray(slice)) for slice in self.masks])
+            masks_resized = np.array([TF.to_tensor(TF.resize(Image.fromarray(slice), (self.img_size, self.img_size))) for slice in self.masks])
             masks_rescaled = (masks_resized / np.max(masks_resized)).astype(np.uint8)
 
             # Split data into training, validation, and testing sets
