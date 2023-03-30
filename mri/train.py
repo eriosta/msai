@@ -3,9 +3,9 @@ import numpy as np
 import nibabel as nib
 import glob
 from sklearn.model_selection import train_test_split
-import tensorflow as tf
-from tensorflow.keras.layers.experimental.preprocessing import Rescaling
-from tensorflow.keras.applications import vit
+import timm
+from timm.models import vision_transformer as vit
+
 
 class ViTTrainer:
     def __init__(self, nii_dir, img_size=224, classes=1, include_top=False, pretrained=True, epochs=10):
@@ -72,7 +72,7 @@ class ViTTrainer:
 
     def load_model(self, model_path=None, weights_path=None):
             # Load ViT model and pre-trained weights
-            self.model = vit.ViT(image_size=self.img_size, classes=self.classes, include_top=self.include_top, pretrained=self.pretrained)
+            self.model = timm.create_model('vit_base_patch16_224', num_classes=self.classes, pretrained=self.pretrained)
 
             # Load saved weights if provided
             if weights_path:
