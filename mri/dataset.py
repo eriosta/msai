@@ -18,11 +18,7 @@ class MRIImageFolder:
             patient_id = row["ID"]
             class_label = row["EDSS_cat"]
             patient_dir = os.path.join(self.mri_dir, f"Patient-{patient_id}")
-            for sequence in ["T1", "T2", "FLAIR"]:
+            for sequence in ["T1", "T2", "Flair"]:
                 input_path = os.path.join(patient_dir, f"{patient_id}-{sequence}.nii")
                 output_path = os.path.join(self.output_dir, f"Class {class_label}", f"{patient_id}-{sequence}.nii")
                 copyfile(input_path, output_path)
-
-            input_path = os.path.join(patient_dir, f"{patient_id}-LesionSeg-T1.nii")
-            output_path = os.path.join(self.output_dir, f"Class {class_label}", f"{patient_id}-LesionSeg-T1.nii")
-            copyfile(input_path, output_path)
