@@ -14,6 +14,8 @@ class MRIImageFolder:
 
     def convert_to_imagefolder(self):
         df = pd.read_csv(self.csv_path)
+        total_patients = len(df)
+        processed_patients = 0
         for _, row in df.iterrows():
             patient_id = row["ID"]
             class_label = row["EDSS_cat"]
@@ -22,3 +24,6 @@ class MRIImageFolder:
                 input_path = os.path.join(patient_dir, f"{patient_id}-{sequence}.nii")
                 output_path = os.path.join(self.output_dir, f"Class {class_label}", f"{patient_id}-{sequence}.nii")
                 copyfile(input_path, output_path)
+                processed_patients += 1
+                if processed_patients % 10 == 0:
+                    print(f"Processed {processed_patients} of {total_patients} patients.")
