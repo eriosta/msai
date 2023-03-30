@@ -3,18 +3,47 @@ import numpy as np
 import nibabel as nib
 import glob
 from sklearn.model_selection import train_test_split
-import timm
+import torch
+from torch import nn, optim
+from torch.utils.data import Dataset, DataLoader
+from torchvision.transforms import transforms
 from timm.models import vision_transformer as vit
+import torch
+from torchvision.transforms import Resize, Normalize
+
+
+class BrainDataset(Dataset):
+    def __init__(self, data, masks, transform=None):
+        self.data = data
+        self.masks = masks
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+
+        data_slice = self.data[idx]
+        mask_slice = self.masks[idx]
+
+        if self.transform:
+            data_slice = self.transform(data_slice)
+            mask_slice = self.transform(mask_slice)
+
+        return data_slice, mask_slice
 
 
 class ViTTrainer:
-    def __init__(self, nii_dir, img_size=224, classes=1, include_top=False, pretrained=True, epochs=10):
+    def __init__(self, nii_dir, img_size=224, classes=1, include_top=False, pretrained=True, epochs=10, batch_size=8):
         self.nii_dir = nii_dir
         self.img_size = img_size
         self.classes = classes
         self.include_top = include_top
         self.pretrained = pretrained
         self.epochs = epochs
+        self.batch_size = batch_size
         self.data = None
         self.masks = None
         self.model = None
@@ -25,8 +54,6 @@ class ViTTrainer:
         mask_folder = os.path.join(self.nii_dir, 'Mask')
         data = []
         masks = []
-        mri_paths = []
-        mask_paths = []
 
         for class_dir in os.listdir(os.path.join(self.nii_dir, "MRI")):
             for sequence in ["T1", "T2", "Flair"]:
@@ -46,43 +73,16 @@ class ViTTrainer:
                     mask_slices = np.rollaxis(mask_data, 2)
                     masks.extend(mask_slices)
 
-                    # Get the file names without the patient ID
-                    mri_file_name = os.path.basename(mri_path)
-                    mask_file_name = os.path.basename(mask_path)
-                    mri_file_name = mri_file_name.split('-', 1)[1]
-                    mask_file_name = mask_file_name.split('-', 1)[1]
-
-                    # Save the file paths without the patient ID
-                    mri_paths.append(os.path.join(mri_folder, class_dir, mri_file_name))
-                    mask_paths.append(os.path.join(mask_folder, class_dir, mask_file_name))
-
         self.data = np.array(data)
         self.masks = np.array(masks)
 
     def preprocess_data(self):
-        data_resized = np.array([tf.image.resize(slice, (self.img_size, self.img_size)) for slice in self.data])
-        data_rescaled = Rescaling(scale=1./255)(data_resized)  # Normalize pixel values to [0, 1]
+            data_resized = np.array([Resize(self.img_size)((slice*255).astype(np.uint8)) for slice in self.data])
+            data_rescaled = Normalize(mean=[0.5], std=[0.5])(torch.Tensor(data_resized)).numpy()
 
-        masks_resized = np.array([tf.image.resize(slice, (self.img_size, self.img_size), method='nearest') for slice in self.masks])
-        masks_rescaled = masks_resized / np.max(masks_resized)  # Normalize pixel values to [0, 1]
+            masks_resized = np.array([Resize(self.img_size)(slice) for slice in self.masks])
+            masks_rescaled = (masks_resized / np.max(masks_resized)).astype(np.uint8)
 
-        # Split data into training, validation, and testing sets
-        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(data_rescaled, masks_rescaled, test_size=0.2, random_state=42)
-        self.X_train, self.X_val, self.y_train, self.y_val = train_test_split(self.X_train, self.y_train, test_size=0.2, random_state=42)
-
-    def load_model(self, model_path=None, weights_path=None):
-            # Load ViT model and pre-trained weights
-            self.model = timm.create_model('vit_base_patch16_224', num_classes=self.classes, pretrained=self.pretrained)
-
-            # Load saved weights if provided
-            if weights_path:
-                self.model.load_weights(weights_path)
-
-            # Load saved model if provided
-            if model_path:
-                self.model = tf.keras.models.load_model(model_path, compile=False)
-
-            # Add attention mask to ViT model
-            attention_mask = tf.keras.layers.Input(shape=(self.img_size, self.img_size, 1))
-            x = tf.keras.layers.Concatenate()([self.model.output, attention_mask])
-            self.model = tf.keras.Model(inputs=[self.model.input, attention_mask], outputs=x)
+            # Split data into training, validation, and testing sets
+            self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(data_rescaled, masks_rescaled, test_size=0.2, random_state=42)
+            self.X_train, self.X_val, self.y_train, self.y_val = train_test_split(self.X_train, self.y_train, test_size=0.2, random_state=42)
